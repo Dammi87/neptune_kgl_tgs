@@ -1,25 +1,26 @@
 """Contains all optimizers."""
 import tensorflow as tf
 from src.lib.neptune import get_params
-from src.lib.tf_ops import GlobalStep
+from src.lib.tf_ops import AdjustLearningRate
 import logging
 
-global_step = GlobalStep()
+lr_adjuster = AdjustLearningRate()
 logger = logging.getLogger('tensorflow')
 params = get_params()
 
 
 def get():
+    lr = lr_adjuster.get_lr()
     """Return the current optimize."""
     if params.optimizer == 'adam':
         return tf.train.AdamOptimizer(
-            learning_rate=params.learning_rate,
+            learning_rate=lr,
             beta1=params.adam_b1,
             beta2=params.adam_b2,
         )
     elif params.optimizer == 'rmsprop':
         return tf.train.RMSPropOptimizer(
-            learning_rate=params.learning_rate,
+            learning_rate=lr,
             decay=params.rms_decay,
             momentum=params.rms_momentum)
     else:

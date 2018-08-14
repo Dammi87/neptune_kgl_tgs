@@ -4,12 +4,13 @@ import tensorflow as tf
 from src.trainer.model import _model_fn
 from src.input_pipe import get_input_fn
 from src.lib.neptune import get_params, NeptuneCollector
-from src.lib.tf_ops import EarlyStopping, GlobalStep
+from src.lib.tf_ops import EarlyStopping, Logger
 
 params = get_params()
 
-# Global step object, to share the current global step between classes
-global_step = GlobalStep()
+# Set logger class, make sure to send it relevant data for other modules to use
+train_logger = Logger()
+train_logger.log_learning_rate(params.learning_rate)
 
 
 def get_vgg16_variable_change():
@@ -154,10 +155,13 @@ def run_manual(run_config, params):
     neptune_connection = NeptuneCollector()
 
     # Early stopping
-    early_check = EarlyStopping(start_epoch=2, max_events=50, maximize=True)
+    early_check = EarlyStopping(start_epoch=params.early_start_epoch, max_events=params.early_paticence, maximize=False)
 
     for i_epoch in range(params.train_epochs):
         estimator.train(input_fn=input_fn['train'])  # In the dataset loading, the input_fn only outputs one epoch
+
+        # Log current Epoch
+        train_logger.log_global_step(i_epoch + 1)
 
         if i_epoch < params.start_eval_at_epoch:
             continue
@@ -166,20 +170,24 @@ def run_manual(run_config, params):
         if i_epoch % params.eval_per_n_epoch == 0 or (i_epoch + 1) == params.train_epochs:
             metrics = estimator.evaluate(input_fn=input_fn['valid'])
 
-            # Set the step
-            global_step.current = metrics['global_step']
+            # Log the step and loss
+            train_logger.log_global_step(metrics['global_step'])
+            train_logger.log_loss(metrics['loss'])
 
             # Send the metrics
             neptune_connection.send(metrics)
 
             # Add early stopping check
-            early_check.add(metrics['iou_coe_50'])
+            early_check.add(metrics['loss'])
+
+            # Log improvements
+            train_logger.log_no_improvements(early_check.get_nbr_non_improvements_in_row())
 
             # Check if training should be stopped
             if early_check.should_stop():
                 break
 
-            # Check if this is a good model or not
+            # Check if this is a good model or not, create a saved model if good
             if early_check.is_better():
                 number = os.path.basename(estimator.latest_checkpoint()).split('-')[-1]
                 export_predict_model = os.path.join(run_config.model_dir, 'best_models', '%s' % number)

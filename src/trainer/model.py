@@ -57,7 +57,9 @@ def _model_fn(features, labels, mode, params):
         dice_loss = lib_loss.dice_coe(probabilities, labels['mask'])
 
         # Sum of losses
-        total_loss = 1.0 * cross_entropy_loss + 0.001 * reg_loss + 2.0 * dice_loss
+        total_loss = params.cross_entr_weight * cross_entropy_loss
+        total_loss += params.reg_weight * reg_loss
+        total_loss += params.dice_weight * dice_loss
 
         # tf.summary.scalar('iou_loss', iou_loss)
         tf.summary.image('img', feature_input)

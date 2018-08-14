@@ -4,30 +4,94 @@ from src.lib.neptune import get_params
 
 params = get_params()
 
-class GlobalStep(object):
 
+class Logger(object):
+    """This class can be used to share information about training."""
     the_one = None
 
-    def __new__(self):
-        if self.the_one is None:
-            self.the_one = super(GlobalStep, self).__new__(self)
-            self.the_one.current = 0
+    def __new__(cls):
+        """Initialize as a singleton."""
+        if cls.the_one is None:
+            cls.the_one = super(Logger, cls).__new__(cls)
+            cls.the_one.current_global_step = 0
+            cls.the_one.current_epoch = 0
+            cls.the_one.current_lr = 0
+            cls.the_one.current_loss = 0
+            cls.the_one.current_no_improvements = 0
 
-        return self.the_one
+        return cls.the_one
+
+    def log_global_step(self, step):
+        """Set global step."""
+        self.current_global_step = step
+
+    def log_epoch(self, epoch):
+        """Set epoch."""
+        self.current_epoch = epoch
+
+    def log_learning_rate(self, lr):
+        """Set learning rate."""
+        self.current_lr = lr
+
+    def log_loss(self, loss):
+        """Set loss."""
+        self.current_loss = loss
+
+    def log_no_improvements(self, N):
+        """Set how many non-improvements have happened."""
+        self.current_no_improvements = N
+
+    def get_global_step(self):
+        """Get global step."""
+        return self.current_global_step
+
+    def get_epoch(self):
+        """Get epoch."""
+        return self.current_epoch
+
+    def get_learning_rate(self):
+        """Get learning rate."""
+        return self.current_lr
+
+    def get_loss(self):
+        """Get loss."""
+        return self.current_loss
+
+    def get_no_improvements(self):
+        """Get how many non improvements have happened."""
+        return self.current_no_improvements
 
 
+class AdjustLearningRate():
+    """Class for adjusting the learning rate according to specific settings."""
 
-def convert_step_to_epoch(global_step):
-    """Convert global_step to floating point number of epochs.
+    def __init__(self):
+        """Initialize class."""
+        self._logger = Logger()
+        self._logging = logging.getLogger('tensorflow')
+        self._params = get_params()
 
-    Parameters
-    ----------
-    global_step : Tensor
-        Current global training step
-    """
-    steps_per_epoch = params.dataset_size * (1 - params.validation_split)
+    def _basic(self):
+        """Simply return the default learning rate."""
+        self._logging.info('AdjustLearningRate._basic: No change')
+        return params.learning_rate
 
-    return float(global_step) / steps_per_epoch
+    def _reduce_on_plateau(self):
+        """If plateaued, reduce learning rate by specified ratio."""
+        nbr = self._logger.get_no_improvements()
+        if nbr >= self._params.lr_patience:
+            lr = self._logger.get_learning_rate() * self._params.lr_plateau_reduce
+            lr = max(self._params.lr_plateau_min_lr, lr)  # Minimum safeguard
+            self._logger.log_learning_rate(lr)
+            self._logging.info('AdjustLearningRate._reduce_on_plateau: Learning rate changed to %1.6f' % lr)
+            return lr
+        self._logging.info('AdjustLearningRate._reduce_on_plateau: No change, count at %d' % nbr)
+        return self._logger.get_learning_rate()
+
+    def get_lr(self):
+        """Return the learning rate."""
+        method = getattr(self, '_%s' % self._params.lr_type)
+        return method()
 
 
 class EarlyStopping():
@@ -97,3 +161,7 @@ class EarlyStopping():
     def is_better(self):
         """Return true if current loss is the best seen."""
         return self._n_events == 0
+
+    def get_nbr_non_improvements_in_row(self):
+        """Return how many times, the metric has NOT improved."""
+        return self._n_events

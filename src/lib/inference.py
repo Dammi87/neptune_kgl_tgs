@@ -1,6 +1,10 @@
 """Method to perform inference, also to convert checkpoints to saved models."""
 import tensorflow as tf
 import numpy as np
+from src.input_pipe.dataset import resize_img
+from src.lib.neptune import get_params
+
+params = get_params()
 
 
 def get_predictor(saved_model_dir):
@@ -35,9 +39,12 @@ def get_ensemble_predictors(saved_models):
     def ensemble(img):
         result = 0
         for fcn in predictors:
-            result += fcn({'input': [img]})['resized_probabilities']
+            result += fcn({'input': [img]})['probabilities']
 
-        return np.divide(result, len(predictors))
+        result = np.divide(result, len(predictors))
+
+        # Downsample to correct size
+        return resize_img(result, resize=params.original_size)
 
     return ensemble
 
@@ -47,7 +54,7 @@ def get_single_predictor(saved_model):
     fcn = get_predictor(saved_model)
 
     def single(img):
-        return fcn({'input': [img]})['probabilities']
+        return resize_img(fcn({'input': [img]})['probabilities'], resize=params.original_size)
 
     return single
 

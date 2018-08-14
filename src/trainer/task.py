@@ -14,7 +14,7 @@ job_id = get_job_id()
 # IDEAS
 # [X] Make a script to go through dataset, and show the ones with most error
 # [ ] Find all masks with VERY straight lines in segmentation, make them not matter as much
-# [X] Make a label smoother, i.e, make the labels exponentially decay around the edges. 
+# [X] Make a label smoother, i.e, make the labels exponentially decay around the edges.
 # [ ] Make a scheduler class, allowing some criteria to control inputs, learning rate etc
 
 
