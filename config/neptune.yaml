@@ -6,9 +6,9 @@ tags: [imgaug, unet]
 parameters:
   # Input pipe parameters
   aug_crop_flip: true
-  aug_affine: true
-  aug_intensity_seq: true
-  aug_mask_smooth: [true, false]
+  aug_affine: false
+  aug_intensity_seq: false
+  aug_mask_smooth: false
   aug_channel_augmenter: false
 
   # Dataset parameters
@@ -17,6 +17,24 @@ parameters:
   buffer_size: 20
   batch_size: 20
   num_parallel_calls: 2
+  remove_bad_id: false
+
+  # Learning rate settings
+  lr_type: 'reduce_on_plateau'  # 'basic', 'reduce_on_plateau'
+  learning_rate: 0.0001
+  lr_patience: 10
+  lr_plateau_reduce: 0.5
+  lr_plateau_min_lr: 0.000005
+
+  # Early stopping parameters
+  early_paticence: 50
+  early_start_epoch: 2
+
+  # Loss settings
+  cross_entr_weight: 1.0
+  reg_weight: 0.0001
+  dice_weight: 2.0
+
 
   # Experiment parameters
   resume_training_from: 
@@ -26,13 +44,12 @@ parameters:
   start_eval_at_epoch: 5
   eval_per_n_epoch: 1
   eval_steps: 20
-  keep_checkpoint_max: 50
+  keep_checkpoint_max: 10
   save_summary_steps: 180
   save_checkpoints_steps: 1000
 
   # Optimizer
-  optimizer: 'rmsprop'
-  learning_rate: 0.0001
+  optimizer: 'adam'
   adam_b1: 0.9
   adam_b2: 0.99
   rms_decay: 0.9
@@ -75,15 +92,14 @@ parameters:
   #### unet ####
   unet_depth: 5
   unet_residual: false
-  unet_dropout_active: true
-  unet_start_filters: [16, 32]
-  unet_upsampling_type: ['subpixel', 'bilinear']
+  unet_start_filters: 32
+  unet_upsampling_type: 'upsample2D'  # upsample2D, subpixel, bilinear, artifact_upsampling, conv_transpose
 
   ### NON_CHANGABLE_CONSTANTS ###
   original_size: 101
   dataset_size: 4000
   validation_split: 0.1
-  salt_vs_not_ratio: 0.247965861
+  salt_vs_not_ratio: 0.247965861 # 0.247965861
 
 metric:
   channel: 'iou_coe_50'

@@ -5,12 +5,13 @@ from sklearn.model_selection import train_test_split
 import os
 import numpy as np
 from src.lib.neptune import get_params
+from src.input_pipe.data import BAD_IDS
 
 
 class DatasetLoader():
     """Dataset loader."""
 
-    def __init__(self, path, resize=128, split=0.1, post_df_methods=[], load_test_set=False):
+    def __init__(self, path, remove_bad=False, resize=128, split=0.1, post_df_methods=[], load_test_set=False):
         """Initialize the loader class.
 
         Parameters
@@ -37,6 +38,7 @@ class DatasetLoader():
         self._post_df_methods = post_df_methods
         self._load_test_set = load_test_set
         self._split = split
+        self._remove_bad = remove_bad
 
         # Load the dataset with the properties specified
         self._load()
@@ -45,6 +47,10 @@ class DatasetLoader():
         train_df = pd.read_csv(os.path.join(self._path, "train.csv"), index_col="id", usecols=[0])
         depths_df = pd.read_csv(os.path.join(self._path, "depths.csv"), index_col="id")
         train_df = train_df.join(depths_df)
+
+        # Remove bad id's
+        if self._remove_bad:
+            train_df = train_df[~train_df.index.isin(BAD_IDS)]
 
         # Load test set
         if self._load_test_set:
@@ -135,7 +141,7 @@ def load_img(img_path, resize=None):
     np.ndarray, shape (width, height, 1) or (resize, resize, 1)
         A numpy array containing the pixel values for the image, normalized by 255
     """
-    img = np.array(upsample(Image.open(img_path).convert('L'), resize))
+    img = np.array(resize_img(Image.open(img_path).convert('L'), resize))
     return np.expand_dims(img, 2)
 
 
@@ -154,12 +160,12 @@ def load_mask(img_path, resize=None):
     np.ndarray, shape (width, height, 1) or (resize, resize, 1)
         A numpy array containing the pixel values for the mask, True value is salt
     """
-    mask = np.array(upsample(Image.open(img_path).convert('L'), resize, method=Image.NEAREST))
+    mask = np.array(resize_img(Image.open(img_path).convert('L'), resize, method=Image.NEAREST))
     return np.expand_dims(mask, 2)
 
 
-def upsample(img, resize, method=Image.BILINEAR):
-    """Upsample images using the specified method."""
+def resize_img(img, resize, method=Image.BILINEAR):
+    """Resize images using the specified method."""
     if resize:
         img = img.resize((resize, resize), method)
     return img
@@ -168,7 +174,11 @@ def upsample(img, resize, method=Image.BILINEAR):
 def get_dataset(raw=False, is_test=False):
     """Get the dataset class according to the neptune parameters."""
     params = get_params()
-    loader = DatasetLoader(params.path, params.resize, params.validation_split, load_test_set=is_test)
+    loader = DatasetLoader(path=params.path,
+                           remove_bad=params.remove_bad_id,
+                           resize=params.resize,
+                           split=params.validation_split,
+                           load_test_set=is_test)
     if raw:
         return loader
     return loader.get_dataset()
