@@ -1,0 +1,29 @@
+{
+    "adamf": [
+        {
+            "build_name": "local_ipython",
+            "docker_file" : "base_cpu",
+            "volumes": [["/home/adamf/data/Kaggle/TGS", "/hdd/datasets/TGS/"]],
+            "GUI": true,
+            "ports": ["8050:8050"],
+            "build_cmd": "neptune run --config ./config/neptune.yaml ",
+            "run_as_module": false
+        }
+    ],
+    "common": [
+        {
+            "build_name": "build_on_remote",
+            "docker_file" : "base",
+            "ports": ["8050:8050"],
+            "volumes": [["/hdd", "/hdd"]],
+            "gpu": [0],
+            "GUI": false,
+            "ssh_ip": "10.0.1.173",
+            "ssh_user": "protolab", 
+            "remote_folder": "/hdd/users/",
+            "build_cmd": "neptune run --config ./config/neptune.yaml",
+            "run_as_module": false,
+            "custom_cmd": ["--network host"]
+        }
+    ]
+}

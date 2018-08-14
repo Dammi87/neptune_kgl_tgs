@@ -1,0 +1,101 @@
+project: adamfjeldsted/sandbox
+open-webbrowser: false
+name: Examples
+tags: [imgaug, unet]
+
+parameters:
+  # Input pipe parameters
+  aug_crop_flip: true
+  aug_affine: true
+  aug_intensity_seq: true
+  aug_mask_smooth: [true, false]
+  aug_channel_augmenter: false
+
+  # Dataset parameters
+  path: '/hdd/datasets/TGS'
+  resize: 128
+  buffer_size: 20
+  batch_size: 20
+  num_parallel_calls: 2
+
+  # Experiment parameters
+  resume_training_from: 
+  output_dir: '/hdd/datasets/TGS/trained_models/network_types'
+  export_from:
+  train_epochs: 100
+  start_eval_at_epoch: 5
+  eval_per_n_epoch: 1
+  eval_steps: 20
+  keep_checkpoint_max: 50
+  save_summary_steps: 180
+  save_checkpoints_steps: 1000
+
+  # Optimizer
+  optimizer: 'rmsprop'
+  learning_rate: 0.0001
+  adam_b1: 0.9
+  adam_b2: 0.99
+  rms_decay: 0.9
+  rms_momentum: 0.0
+
+  # Network selector
+  network_type: 'unet'
+  warm_start: true
+
+  ### Network architectures ###
+
+  # Common variables
+  start_filters: 64
+  dropout: 0.5
+  batchnorm: true
+  nbr_of_classes: 1
+
+  #### resmet ####
+  resnet_chkp: '/hdd/pretrained_networks/resnet_152/resnet_v2_152.ckpt'
+  resnet_freeze: true
+  resnet_upsampling_type: 'artifact_upsampling'
+  resnet_add_coloring_layer: false
+  resnet_stack_input_channels: false
+
+  #### nasnet ####
+  nasnet_chkp: '/hdd/pretrained_networks/nasnet/model.ckpt'
+  nasnet_freeze: true
+  nasnet_add_coloring_layer: false
+  nasnet_stack_input_channels: true
+
+  #### vgg_16_unet ####
+  vgg16_chkp: '/hdd/pretrained_networks/vgg16/vgg_16.ckpt'
+  vgg_16_freeze: false
+  vgg_16_add_coloring_layer: false
+  vgg_16_stack_input_channels: true
+  vgg_16_stack_depth: 5
+  vgg_16_unet_upsampling_type: 'subpixel'
+
+
+  #### unet ####
+  unet_depth: 5
+  unet_residual: false
+  unet_dropout_active: true
+  unet_start_filters: [16, 32]
+  unet_upsampling_type: ['subpixel', 'bilinear']
+
+  ### NON_CHANGABLE_CONSTANTS ###
+  original_size: 101
+  dataset_size: 4000
+  validation_split: 0.1
+  salt_vs_not_ratio: 0.247965861
+
+metric:
+  channel: 'iou_coe_50'
+  goal: maximize
+
+exclude:
+  - output
+  - cache
+  - neptune.log
+  - offline_job.log
+  - .git
+  - .idea
+  - .ipynb_checkpoints
+  - Dockerfiles/base.Dockerfile
+  - token
