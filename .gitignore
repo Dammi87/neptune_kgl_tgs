@@ -109,3 +109,5 @@ ENV/
 *.pb
 
 output/
+
+bwd\.json
