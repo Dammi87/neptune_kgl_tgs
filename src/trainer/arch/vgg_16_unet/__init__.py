@@ -11,19 +11,6 @@ def get_vgg_16_header(x, params):
     if params.vgg16_chkp is not None:
         start_filters = 64
 
-    # If coloring layer is desired, then it's added to the header
-    if params.vgg_16_add_coloring_layer:
-        def very_leaky_relu(x):
-            return tf.nn.leaky_relu(x, 1 / 5.5)
-
-        # Creating a header infront of the VGG16 color network
-        with tf.variable_scope('Coloring_layer'):
-            x = tf.layers.Conv2D(10, (3, 3), padding='same', activation=very_leaky_relu)(x)
-            x = tf.layers.Conv2D(3, (3, 3), padding='same', activation=very_leaky_relu)(x)
-            tf.summary.image('colored_image', x)
-    elif params.vgg_16_stack_input_channels:
-        x = tf.concat([x] * 3, axis=-1)
-
     return x, start_filters
 
 

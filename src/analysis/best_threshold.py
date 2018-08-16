@@ -7,8 +7,10 @@ from src.lib.inference import get_ensemble_predictors
 
 
 def search_best(saved_model):
+    """Search for the best threshold of this model, according to validation set."""
     # Get the augmentor
     augmenter = get_augmenter()
+    augmenter._setup()
 
     # Load in the dataset
     dataset_loader = get_dataset(raw=True)
@@ -29,7 +31,7 @@ def search_best(saved_model):
         img, mask = augmenter.apply_normalization(img, mask)
 
         # Run through network
-        pred = fcn(img).squeeze()
+        pred = fcn(img.squeeze()).squeeze()
 
         # Collect all results
         results.append(pred)
@@ -42,9 +44,6 @@ def search_best(saved_model):
     # Check threshold
     thresholds = np.linspace(0, 1, 50).tolist()
     ious = [iou_metric_batch(masks, np.int32(results > threshold)) for threshold in thresholds]
-
-    #for t, iou in zip(thresholds, ious):
-    #    print('For threshold %1.2f: %1.2f' % (t, iou))
 
     best_iou = max(ious)
     best_t = thresholds[ious.index(best_iou)]

@@ -7,11 +7,13 @@ import numpy as np
 from src.lib.neptune import get_params
 from src.input_pipe.data import BAD_IDS
 
+params = get_params()
+
 
 class DatasetLoader():
     """Dataset loader."""
 
-    def __init__(self, path, remove_bad=False, resize=128, split=0.1, post_df_methods=[], load_test_set=False):
+    def __init__(self, path, img_type='images', remove_bad=False, resize=128, split=0.1, post_df_methods=[], load_test_set=False):
         """Initialize the loader class.
 
         Parameters
@@ -34,11 +36,12 @@ class DatasetLoader():
             Loads the test set instead of the training set
         """
         self._path = path
+        self._img_type = img_type
         self._resize = resize
         self._post_df_methods = post_df_methods
         self._load_test_set = load_test_set
         self._split = split
-        self._remove_bad = remove_bad
+        self._remove_bad = remove_bad and not load_test_set
 
         # Load the dataset with the properties specified
         self._load()
@@ -52,21 +55,22 @@ class DatasetLoader():
         if self._remove_bad:
             train_df = train_df[~train_df.index.isin(BAD_IDS)]
 
+        bw = self._img_type == 'images'
         # Load test set
         if self._load_test_set:
             pd.options.mode.chained_assignment = None
             df = depths_df[~depths_df.index.isin(train_df.index)]
 
-            img_paths = os.path.join(self._path, "images")
-            df["images"] = [load_img(os.path.join(img_paths, "{}.png".format(idx)), self._resize) for idx in df.index]
+            img_paths = os.path.join(self._path, self._img_type)
+            df["images"] = [load_img(os.path.join(img_paths, "{}.png".format(idx)), self._resize, bw) for idx in df.index]
         else:
             df = train_df
-            img_paths = os.path.join(self._path, "train", "images")
+            img_paths = os.path.join(self._path, "train", self._img_type)
             mask_paths = os.path.join(self._path, "train", "masks")
-            df["images"] = [load_img(os.path.join(img_paths, "{}.png".format(idx)), self._resize) for idx in df.index]
+            df["images"] = [load_img(os.path.join(img_paths, "{}.png".format(idx)), self._resize, bw) for idx in df.index]
             df["masks"] = [load_mask(os.path.join(mask_paths, "{}.png".format(idx)), self._resize) for idx in df.index]
             df["masks_org"] = [load_mask(os.path.join(mask_paths, "{}.png".format(idx)), None) for idx in df.index]
-            df["images_org"] = [load_img(os.path.join(img_paths, "{}.png".format(idx)), None) for idx in df.index]
+            df["images_org"] = [load_img(os.path.join(img_paths, "{}.png".format(idx)), None, bw) for idx in df.index]
 
             # Salt coverage
             img_size = df["images"][0].shape[1]
@@ -126,7 +130,7 @@ class DatasetLoader():
             return self._get_train_and_validation()
 
 
-def load_img(img_path, resize=None):
+def load_img(img_path, resize=None, bw=True):
     """Load an image as a numpy array normalized, resize if specified.
 
     Parameters
@@ -141,8 +145,11 @@ def load_img(img_path, resize=None):
     np.ndarray, shape (width, height, 1) or (resize, resize, 1)
         A numpy array containing the pixel values for the image, normalized by 255
     """
-    img = np.array(resize_img(Image.open(img_path).convert('L'), resize))
-    return np.expand_dims(img, 2)
+    if bw:
+        img = np.array(resize_img(Image.open(img_path).convert('L'), resize))
+        return np.expand_dims(img, 2)
+    else:
+        return np.array(resize_img(Image.open(img_path), resize))
 
 
 def load_mask(img_path, resize=None):
@@ -175,6 +182,7 @@ def get_dataset(raw=False, is_test=False):
     """Get the dataset class according to the neptune parameters."""
     params = get_params()
     loader = DatasetLoader(path=params.path,
+                           img_type=params.img_type,
                            remove_bad=params.remove_bad_id,
                            resize=params.resize,
                            split=params.validation_split,
@@ -218,6 +226,8 @@ def create_generator(augmenter=None, is_test=False):
             if augmenter is not None:
                 data['x'] = augmenter.apply_preprocess(data['x'])
             img_shape = list(data['x'][0].shape)
+            if not is_test:
+                mask_shape = list(data['y'][0].shape)
 
     # Now, create the generators for each dataset. (During training, there are two datasets, thus two generators)
     def train_generator(dataset):
@@ -257,7 +267,7 @@ def create_generator(augmenter=None, is_test=False):
         def test_gen():
             return test_generator(datasets[0])
 
-        return test_gen, img_shape
+        return test_gen, img_shape, None
     else:
         def train_gen():
             return train_generator(datasets[0])
@@ -265,7 +275,7 @@ def create_generator(augmenter=None, is_test=False):
         def valid_gen():
             return validation_generator(datasets[1])
 
-        return (train_gen, valid_gen), img_shape
+        return (train_gen, valid_gen), img_shape, mask_shape
 
 
 if __name__ == "__main__":

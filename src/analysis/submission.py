@@ -6,6 +6,20 @@ from src.lib.inference import RLenc, get_ensemble_predictors
 from src.analysis.best_threshold import search_best
 
 
+def get_latest_saved_model(model_dir):
+    """Return the latest saved_model."""
+    saved_models = os.path.join(model_dir, 'best_models')
+    saved_chkp = sorted([int(mdl) for mdl in os.listdir(saved_models)])
+    latest = saved_chkp[-1]
+    path = os.path.join(saved_models, '%d' % latest)
+
+    # Next, find the full path to the saved model
+    mdl_time = os.listdir(path)
+
+    # Return the final path
+    return os.path.join(path, mdl_time[-1])
+
+
 def create(path, saved_model, search_threshold=False):
     """Create submission, saved to csv file."""
     # Load the dataset
@@ -27,7 +41,7 @@ def create(path, saved_model, search_threshold=False):
     print("Running inference and RLE")
     for i, img_idx in enumerate(generator):
         img, idx = img_idx
-        result = fcn(img) >= set_threshold
+        result = fcn(img.squeeze()) >= set_threshold
         pred_dict[idx] = RLenc(result)
         if i % report_every == 0:
             print("\t -> [%d/%d]" % (i, n_samples))
@@ -46,6 +60,7 @@ def submit(path, msg):
     cmd = '%s -m "%s"' % (cmd, msg)
     os.system(cmd)
 
+
 def submit_for_model(saved_models, tags=[], path='/hdd/datasets/TGS', search_threshold=True):
     """Auto tags the submission."""
     # Fetch the saved models id
@@ -57,8 +72,12 @@ def submit_for_model(saved_models, tags=[], path='/hdd/datasets/TGS', search_thr
     create(path, saved_models, search_threshold=search_threshold)
     submit(os.path.join(path, 'submission.csv'), tag_string)
 
+
 if __name__ == "__main__":
+    model_dirs = ['/hdd/datasets/TGS/trained_models/network_types/vgg_16_unet/3254a838-ac23-4e80-bcf8-61f8b1b31f76']
+    use_these = [get_latest_saved_model(mdl_dir) for mdl_dir in model_dirs]
+
     submit_for_model(
-        ['/hdd/datasets/TGS/trained_models/resnet_152/unet/0750bf9c-656c-4ef0-b622-ed3377704bfe/best_models/14040/1534166325'],
-        tags=['128x128x1', 'Custom Unet', 'Smooth masks'],
+        use_these,
+        tags=['128x128x1', 'VGG16_Unet', 'reduce_on_plateau', 'subpixel', 'textured_channels'],
         search_threshold=True)

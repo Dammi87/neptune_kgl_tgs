@@ -33,6 +33,10 @@ class AugmentImages:
         """Add a iaa method that should be applied on both masks and images."""
         self._mask_and_images.append(iaa_method)
 
+    def set_normalization_method(self, method_name):
+        """Set the normalization method."""
+        self._normalize_method = method_name
+
     def _setup(self):
         """Setup the augmentation chain."""
         if self._is_setup:
@@ -62,10 +66,24 @@ class AugmentImages:
 
             setattr(self, method, new)
 
-    def apply_preprocess(self, img):
+        # Change out normalization
+        self.apply_image_normalization = self._normalize_method['img']
+        self.apply_mask_normalization = self._normalize_method['mask']
+        self.output_image_channels = self._normalize_method['img_channels']
+
+    def apply_preprocess(self, img, batch_size=10):
         """Apply image preprocessing steps."""
         self._setup()
-        return self._pre_process.augment_images(img)
+
+        # Loop to save RAM
+        index = np.arange(img.shape[0])
+        new_img = []
+        for index in range(0, img.shape[0], batch_size):
+            batch = img[index:min(index + batch_size, img.shape[0]), ::]
+            processed = self._pre_process.augment_images(batch)
+            new_img.append(processed)
+
+        return np.concatenate(new_img, axis=0)
 
     def apply(self, img, mask):
         """Apply the augmentations to the image and mask.
@@ -100,17 +118,9 @@ class AugmentImages:
             # Apply mask only step
             mask = self._masks_only.augment_images(mask)
 
-            return img.astype(np.float32) / 255, mask.astype(np.float32) / 255
+            return self.apply_image_normalization(img), self.apply_mask_normalization(mask)
 
         return tf.py_func(func=wrapper, inp=[img, mask], Tout=[tf.float32, tf.float32])
-
-    def apply_image_normalization(self, img):
-        """Apply desired normalization to the image."""
-        return img.astype(np.float32) / 255
-
-    def apply_mask_normalization(self, mask):
-        """Apply desired normalization to the mask."""
-        return (mask / 255).astype(np.float32)
 
     def apply_normalization(self, img, mask):
         """Normalize images."""
@@ -161,5 +171,8 @@ def get_augmenter():
                 augmenter.add_both(aug.image_and_masks[aug_name])
 
             print("Applied %s" % param)
+
+    # Apply normalization method
+    augmenter.set_normalization_method(aug.get_norm_method(params['network_type']))
 
     return augmenter

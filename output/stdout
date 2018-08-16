@@ -1,4 +1,3 @@
 Applied aug_affine
-Applied aug_crop_flip
-Applied aug_mask_smooth
 Applied aug_intensity_seq
+Applied aug_crop_flip

@@ -7,25 +7,6 @@ from .lib import resize_bil, upsample_resize_concat
 CELLS_TO_USE = ['Cell_17', 'Cell_11', 'Cell_13']
 
 
-def get_nasnet_header(x, params):
-    """If a header is required, set it, also change start_filters."""
-
-    # If coloring layer is desired, then it's added to the header
-    if params.nasnet_add_coloring_layer:
-        def very_leaky_relu(x):
-            return tf.nn.leaky_relu(x, 1 / 5.5)
-
-        # Creating a header infront of the VGG16 color network
-        with tf.variable_scope('Coloring_layer'):
-            x = tf.layers.Conv2D(10, (3, 3), padding='same', activation=very_leaky_relu)(x)
-            x = tf.layers.Conv2D(3, (3, 3), padding='same', activation=very_leaky_relu)(x)
-            tf.summary.image('colored_image', x)
-    elif params.nasnet_stack_input_channels:
-        x = tf.concat([x] * 3, axis=-1)
-
-    return x
-
-
 nas_net_for_training = nets_factory.get_network_fn('nasnet_large',
                                                    num_classes=None,
                                                    is_training=True)
@@ -35,9 +16,6 @@ nas_net_for_eval = nets_factory.get_network_fn('nasnet_large',
 
 
 def network(x, mode, params):
-
-    # Get header
-    x = get_nasnet_header(x, params)
 
     _, cells = nas_net_for_eval(x)
 

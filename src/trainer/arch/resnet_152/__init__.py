@@ -42,28 +42,9 @@ def up_sampling_stack(in_x, bypassed, depth, filters, params):
     return x
 
 
-def get_res_header(x, params):
-    """If a header is required, set it, also change start_filters."""
-
-    # If coloring layer is desired, then it's added to the header
-    if params.resnet_add_coloring_layer:
-        def very_leaky_relu(x):
-            return tf.nn.leaky_relu(x, 1 / 5.5)
-
-        # Creating a header infront of the VGG16 color network
-        with tf.variable_scope('Coloring_layer'):
-            x = tf.layers.Conv2D(10, (3, 3), padding='same', activation=very_leaky_relu)(x)
-            x = tf.layers.Conv2D(3, (3, 3), padding='same', activation=very_leaky_relu)(x)
-            tf.summary.image('colored_image', x)
-    elif params.resnet_stack_input_channels:
-        x = tf.concat([x] * 3, axis=-1)
-
-    return x
 
 def network(x, mode, params):
-    start_filters = 2048
     num_filters = 32
-    x = get_res_header(x, params)
     with slim.arg_scope(nets.resnet_v2.resnet_arg_scope()):
         logit, le_dict = nets.resnet_v2.resnet_v2_152(x,
                                                       num_classes=None,

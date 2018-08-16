@@ -11,11 +11,24 @@ from src.lib.neptune import get_params, get_job_id
 params = get_params()
 job_id = get_job_id()
 
-# IDEAS
-# [X] Make a script to go through dataset, and show the ones with most error
-# [ ] Find all masks with VERY straight lines in segmentation, make them not matter as much
-# [X] Make a label smoother, i.e, make the labels exponentially decay around the edges.
-# [ ] Make a scheduler class, allowing some criteria to control inputs, learning rate etc
+""" IDEAS.
+    [X] Make a script to go through dataset, and show the ones with most error
+        - See analysis.largest_error
+    [ ] Find all masks with VERY straight lines in segmentation, make them not matter as much
+    [X] Make a label smoother, i.e, make the labels exponentially decay around the edges.
+        - Turn on by setting the aug_mask_smooth: true, doesn't seem to gain anything by doing so
+    [X] Make a scheduler class, allowing some criteria to control inputs, learning rate etc
+        - See src.lib.tfops.Logger, it logs epochs, loss, learning rate etc.
+          Then an example of using it is seen in src.trainer.lib.optimizer, the AdjustLearningRate
+    [X] Instead of normalizing, subtract dataset mean and variance. Figure out what to do when ch=1 and ch=3
+        - Normalization settings now applied in the augmenter class. New normalization methods should be
+          put into src.input_pipe.augmentations.normalization. Make sure to define the output channels!
+    [X] Implement a class that can handle freezing / unfreezing layers during training.
+        - See AdjustLayerFreeze in tfops. Currently only handles turning on layers at a specific epoch
+    [X] Implement a way to do K-Cross Validation folding. Then ensemble all of them. The folds need to
+        be deterministic, i.e, always give the same folder for every run. That way we can loop through
+        them.
+"""
 
 
 def resume_training(model_dir):

@@ -5,6 +5,7 @@ from src.trainer.model import _model_fn
 from src.input_pipe import get_input_fn
 from src.lib.neptune import get_params, NeptuneCollector
 from src.lib.tf_ops import EarlyStopping, Logger
+from src.input_pipe.image_converter import get_augmenter
 
 params = get_params()
 
@@ -94,7 +95,7 @@ def build_estimator(run_config):
         if params.resnet_chkp is not None and params.network_type == 'resnet_152':
             warm_start_from = tf.estimator.WarmStartSettings(
                 ckpt_to_initialize_from=params.resnet_chkp,
-                vars_to_warm_start='^((?!Decoder).)*$'
+                vars_to_warm_start='resnet_v2_152'
             )
 
     return tf.estimator.Estimator(model_fn=_model_fn,
@@ -106,10 +107,13 @@ def build_estimator(run_config):
 
 def serving_input_fn():
     """Input function to use when serving the model."""
-    if params.aug_channel_augmenter:
-        incoming = tf.placeholder(tf.float32, shape=(None, params.resize, params.resize, 3), name='input_image')
-    else:
-        incoming = tf.placeholder(tf.float32, shape=(None, params.resize, params.resize, 1), name='input_image')
+    # Fetch the augmenter, it will state the input size
+    augmenter = get_augmenter()
+    augmenter._setup()
+    in_channels = augmenter.output_image_channels
+    if params.img_type == 'images_textured':
+        in_channels = 3
+    incoming = tf.placeholder(tf.float32, shape=(None, params.resize, params.resize, in_channels), name='input_image')
 
     feature_input = {'img': incoming}
 
@@ -161,7 +165,7 @@ def run_manual(run_config, params):
         estimator.train(input_fn=input_fn['train'])  # In the dataset loading, the input_fn only outputs one epoch
 
         # Log current Epoch
-        train_logger.log_global_step(i_epoch + 1)
+        train_logger.log_epoch(i_epoch + 1)
 
         if i_epoch < params.start_eval_at_epoch:
             continue

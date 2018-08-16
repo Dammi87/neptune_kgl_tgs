@@ -3,8 +3,6 @@ import tensorflow as tf
 from src.lib.neptune import get_params
 from .image_converter import get_augmenter
 from .dataset import create_generator
-from tensorflow.python.framework import ops
-from tensorflow.python.framework import dtypes
 
 
 def get_input_fn(is_test=False):
@@ -29,47 +27,47 @@ def get_input_fn(is_test=False):
     augmenter = get_augmenter()
 
     # Get generator methods
-    generators, img_shape = create_generator(augmenter, is_test=is_test)
+    generators, img_shape, mask_shape = create_generator(augmenter, is_test=is_test)
 
     def create_dataset(generator, augmenter=augmenter, params=params, is_train=True):
-        types = (tf.uint8, tf.uint8)
-        shapes = (tf.TensorShape(img_shape), tf.TensorShape(img_shape))
+        with tf.variable_scope('feeder'):
+            types = (tf.uint8, tf.uint8)
+            shapes = (tf.TensorShape(img_shape), tf.TensorShape(mask_shape))
 
-        # Initialize dataset
-        dataset = tf.data.Dataset.from_generator(generator, types, shapes)
+            # Initialize dataset
+            dataset = tf.data.Dataset.from_generator(generator, types, shapes)
 
-        # Manually set batch_size
-        dataset._batch_size = ops.convert_to_tensor(params.batch_size, dtype=dtypes.int64, name="batch_size")
+            # Form a batch
+            dataset = dataset.batch(params.batch_size)
 
-        # No need for this, generator does this
-        dataset = dataset.prefetch(params.buffer_size)
-        dataset = dataset.shuffle(params.buffer_size)
-        dataset = dataset.batch(params.batch_size)
+            # After batch has been collected, apply transformations
+            if is_train:
+                dataset = dataset.map(augmenter.apply, num_parallel_calls=params.num_parallel_calls)
+            else:
+                # The normalization is rather lightweight, no threads are allocated for it.
+                dataset = dataset.map(augmenter.apply_normalization_tfunc)
 
-        # After batch has been collected, apply transformations
-        if is_train:
-            dataset = dataset.map(augmenter.apply, num_parallel_calls=params.num_parallel_calls)
-        else:
-            # The normalization is rather lightweight, no threads are allocated for it.
-            dataset = dataset.map(augmenter.apply_normalization_tfunc)
+            # Prefetch batches
+            dataset = dataset.prefetch(params.prefetch_batches)
 
-        # Make into an iterator
-        iterator = dataset.make_one_shot_iterator()
-        image, mask = iterator.get_next()
+            # Make into an iterator
+            iterator = dataset.make_one_shot_iterator()
+            image, mask = iterator.get_next()
 
-        # Set shape manually since opencv is used in background, it returns unknown shape
-        shape = [-1] + img_shape
-        mask = tf.reshape(mask, shape)
-        # When channels are augmented, the image becomes (N, W, H, 3) instead of (N, W, H, 1)
-        if params.aug_channel_augmenter:
-            shape[-1] = 3
-        image = tf.reshape(image, shape)
+            # Set shape manually since opencv is used in background, it returns unknown shape
+            shape = [-1] + mask_shape
+            mask = tf.reshape(mask, shape)
 
-        # Return two items
-        features = {'img': image}
-        labels = {'mask': mask}
+            # Sometimes, augmenter will add channels during normalization, reflect that here
+            shape = [-1] + img_shape
+            shape[-1] = augmenter.output_image_channels
+            image = tf.reshape(image, shape)
 
-        return features, labels
+            # Return two items
+            features = {'img': image}
+            labels = {'mask': mask}
+
+            return features, labels
 
     input_fn = {}
 

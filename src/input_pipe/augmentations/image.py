@@ -4,16 +4,6 @@ import cv2
 import numpy as np
 
 
-def _combination(images):
-    new_img = []
-    for img in images:
-        # img_uint8 = (img.squeeze() * 255).astype(np.uint8)
-        smoothness = np.absolute(cv2.Laplacian(img.copy(), cv2.CV_64F)).astype(np.uint8)
-        edges = cv2.Canny(img.copy(), 150, 150).astype(np.uint8)
-        new_img.append(np.stack([smoothness, img.squeeze(), edges], axis=-1))
-
-    return np.stack(new_img)
-
 intensity_seq = iaa.Sequential([
     # iaa.Invert(0.3),
     iaa.OneOf([
@@ -38,6 +28,7 @@ def _combination(images, random_state, parents, hooks):
         new_img.append(np.stack([smoothness, img.squeeze(), edges], axis=-1))
 
     return np.stack(new_img)
+
 
 channel_augmenter = iaa.Lambda(func_images=_combination, func_keypoints=None)
 

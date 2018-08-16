@@ -94,6 +94,82 @@ class AdjustLearningRate():
         return method()
 
 
+class AdjustLayerFreeze():
+    """Class for adjusting what layers should be active during training.
+
+    This is usefull when it's desired to freeze for example the encoder part of a
+    network that has pre-trained weights, allowing the decoder to be trained more
+    fully. Then at later stages, activate the encoder training.
+    """
+
+    def __init__(self):
+        """Initialize class."""
+        self._logger = Logger()
+        self._logging = logging.getLogger('tensorflow')
+        self._params = get_params()
+
+    def _none(self):
+        """No freezing."""
+        self._logging.info('AdjustLayerFreeze._basic: Nothing applied, basic learning')
+        return None, True
+
+    def _on_epoch(self):
+        """Here you can define settings based on network type.
+
+        The settings are
+            NETWORK_NAME
+                'basic': Layers to activate when epoch is not reached
+                'at_epoch': Layers to activate when epoch is reached
+
+        NOTE: Once epoch is reached, it won't revert back to basic!
+              These settings are also only activated IF warm_start is TRUE
+        """
+        settings_cfg = {
+            'vgg_16_unet':
+                {
+                    'basic': ['Decoder'],
+                    'at_epoch': ['Encoder', 'vgg_16']
+                },
+            'resnet_152':
+                {
+                    'basic': ['Decoder'],
+                    'at_epoch': ['Decoder', 'resnet_v2_152']
+                },
+            'basic':
+                {
+                    'basic': [None],
+                    'at_epoch': [None]
+                }
+        }
+        activiated = [True, False]  # Basic version activated first
+        setting_type = 'basic'
+        if self._params.warm_start:
+            setting_type = self._params.network_type
+
+        # If no warm start, simply return the basic one
+        if setting_type == 'basic':
+            return self._none()
+
+        # Otherwise, we can continue
+        settings = settings_cfg[setting_type]
+
+        nbr = self._logger.get_epoch()
+        settings = settings_cfg[setting_type]
+        if nbr >= self._params.freeze_until_epoch:
+            self._logging.info('AdjustLayerFreeze._varlist_on_epoch: training {}'.format(settings['at_epoch']))
+            activiated = [False, True]  # Activate both var lists
+        else:
+            self._logging.info('AdjustLayerFreeze._varlist_on_epoch: training {}'.format(settings['basic']))
+            activiated = [True, False]  # Basic only
+
+        return settings, activiated
+
+    def get_collection_list(self):
+        """Return the learning rate."""
+        method = getattr(self, '_%s' % self._params.layer_freeze_type)
+        return method()
+
+
 class EarlyStopping():
     """Simple early stopping class."""
 

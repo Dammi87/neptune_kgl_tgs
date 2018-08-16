@@ -1,10 +1,11 @@
 """Contains all optimizers."""
 import tensorflow as tf
 from src.lib.neptune import get_params
-from src.lib.tf_ops import AdjustLearningRate
+from src.lib.tf_ops import AdjustLearningRate, AdjustLayerFreeze
 import logging
 
 lr_adjuster = AdjustLearningRate()
+lf_adjuster = AdjustLayerFreeze()
 logger = logging.getLogger('tensorflow')
 params = get_params()
 
@@ -27,6 +28,7 @@ def get():
         raise Exception('Unknown optimizer.')
 
 
+'''
 def get_var_list(global_step):
     """Return a var list per global step, can be used to turn on/off training.
 
@@ -48,25 +50,39 @@ def get_var_list(global_step):
             # When the model is vgg16 AND has a coloring header, train only the
             # Decoder and Coloring layer for 10 epochs of the timesteps.
             var_list = tf.get_collection(tf.GraphKeys.TRAINABLE_VARIABLES, scope='Decoder')
-
-        if params.vgg_16_add_coloring_layer:
-            var_list += tf.get_collection(tf.GraphKeys.TRAINABLE_VARIABLES, scope='Coloring_layer')
-
     elif params.network_type == 'nasnet':
         if params.nasnet_freeze:
             var_list = tf.get_collection(tf.GraphKeys.TRAINABLE_VARIABLES, scope='Decoder')
-
-        if params.nasnet_add_coloring_layer:
-            var_list += tf.get_collection(tf.GraphKeys.TRAINABLE_VARIABLES, scope='Coloring_layer')
-
     elif params.network_type == 'resnet_152':
         if params.resnet_freeze:
             var_list = tf.get_collection(tf.GraphKeys.TRAINABLE_VARIABLES, scope='Decoder')
 
-        if params.resnet_add_coloring_layer:
-            var_list += tf.get_collection(tf.GraphKeys.TRAINABLE_VARIABLES, scope='Coloring_layer')
-
     return var_list
+'''
+
+
+def parse_collections(collections):
+    """Parse the lsit of collections given."""
+    if collections is None:
+        return tf.get_collection(tf.GraphKeys.TRAINABLE_VARIABLES)
+    var_list = []
+    for c in collections:
+        var_list += tf.get_collection(tf.GraphKeys.TRAINABLE_VARIABLES, scope=c)
+    return var_list
+
+
+def get_var_list():
+    """Fetch the varlist to use for training."""
+    collections, activated = lf_adjuster.get_collection_list()
+    if collections is None:
+        var_lists = [parse_collections(collections)]  # Only one set of variable lists
+        activated = [activated]
+    else:
+        var_lists = []
+        for c in collections:
+            var_lists.append(parse_collections(collections[c]))
+
+    return var_lists, activated
 
 
 def create_optimizer(total_loss, global_step):
@@ -74,8 +90,11 @@ def create_optimizer(total_loss, global_step):
     optimizer = get()
     update_ops = tf.get_collection(tf.GraphKeys.UPDATE_OPS)
     with tf.control_dependencies(update_ops):
-        var_list = get_var_list(global_step)
-        train_op = optimizer.minimize(total_loss,
-                                      global_step=global_step,
-                                      var_list=var_list)
-    return train_op
+        var_list, activated = get_var_list()
+        # For each var_list, create a training operation
+        train_ops = []
+        for i_vars in var_list:
+            train_ops.append(optimizer.minimize(total_loss,
+                                                global_step=global_step,
+                                                var_list=i_vars))
+    return train_ops, activated

@@ -47,14 +47,14 @@ def _model_fn(features, labels, mode, params):
         global_step = tf.train.get_or_create_global_step()
 
         # Calculate cross entropy loss
-        # cross_entropy_loss = lib_loss.get_cross_entropy(labels['mask'], logits)
-        cross_entropy_loss = tf.losses.sigmoid_cross_entropy(labels['mask'], logits)
+        cross_entropy_loss = lib_loss.get_cross_entropy(labels['mask'], logits)
+        # cross_entropy_loss = tf.losses.sigmoid_cross_entropy(labels['mask'], logits)
 
         # Add any regularization losses
         reg_loss = tf.reduce_sum(tf.get_collection(tf.GraphKeys.REGULARIZATION_LOSSES))
 
         # Get dice loss
-        dice_loss = lib_loss.dice_coe(probabilities, labels['mask'])
+        dice_loss = lib_loss.dice_loss(labels['mask'], probabilities)
 
         # Sum of losses
         total_loss = params.cross_entr_weight * cross_entropy_loss
@@ -79,8 +79,8 @@ def _model_fn(features, labels, mode, params):
 
     # In training (not evaluation) we perform backprop
     if mode == Modes.TRAIN:
-        train_op = lib_optimizer.create_optimizer(total_loss, global_step)
-        return tf.estimator.EstimatorSpec(mode, loss=total_loss, train_op=train_op)
+        train_ops, activated = lib_optimizer.create_optimizer(total_loss, global_step)
+        return tf.estimator.EstimatorSpec(mode, loss=total_loss, train_op=train_ops[activated.index(True)])
 
     # If evaluating only, we perform evaluation operations
     if mode == Modes.EVAL:

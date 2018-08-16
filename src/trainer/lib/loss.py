@@ -5,16 +5,26 @@ from src.lib.neptune import get_params
 params = get_params()
 
 
+def dice_loss(labels, predictions):
+    smooth = 1.
+    labels_f = tf.layers.Flatten()(labels)
+    predictions_f = tf.layers.Flatten()(predictions)
+    intersection = labels_f * predictions_f
+    num = 2. * tf.reduce_sum(intersection, axis=(1)) + smooth
+    den = tf.reduce_sum(labels_f, axis=(1)) + tf.reduce_sum(predictions_f, axis=(1)) + smooth
+    score = num / den
+    return tf.reduce_mean(1. - score)
+
+
 def get_cross_entropy(masks, logits, weighted=True):
     """Get the correct cross entropy loss, based on number of classes."""
     if params.nbr_of_classes == 1:
         loss_per_logit = tf.nn.sigmoid_cross_entropy_with_logits(labels=masks, logits=logits)
         if weighted and params.salt_vs_not_ratio:
             weight = masks * (1 - 2 * params.salt_vs_not_ratio) + params.salt_vs_not_ratio
-            loss_per_logit = tf.multinomial(weight, loss_per_logit)
+            loss_per_logit = tf.multiply(weight, loss_per_logit)
 
         return tf.reduce_mean(loss_per_logit)
-
     if params.nbr_of_classes == 2:
         raise NotImplemented
 

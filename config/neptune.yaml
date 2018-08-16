@@ -1,30 +1,35 @@
 project: adamfjeldsted/sandbox
 open-webbrowser: false
 name: Examples
-tags: [imgaug, unet]
+tags: [imgaug, vgg16_unet, freeze_schedule]
 
 parameters:
-  # Input pipe parameters
+  # Input pipe parameters (Normalization is based in the parameter network_type)
   aug_crop_flip: true
-  aug_affine: false
-  aug_intensity_seq: false
+  aug_affine: true
+  aug_intensity_seq: true
   aug_mask_smooth: false
   aug_channel_augmenter: false
 
   # Dataset parameters
   path: '/hdd/datasets/TGS'
+  img_type: 'images' # 'images' and 'images_textured' (3 channels)
   resize: 128
-  buffer_size: 20
-  batch_size: 20
-  num_parallel_calls: 2
-  remove_bad_id: false
+  prefetch_batches: 5
+  batch_size: 32
+  num_parallel_calls: 4
+  remove_bad_id: true
 
   # Learning rate settings
   lr_type: 'reduce_on_plateau'  # 'basic', 'reduce_on_plateau'
   learning_rate: 0.0001
   lr_patience: 10
-  lr_plateau_reduce: 0.5
+  lr_plateau_reduce: 0.9
   lr_plateau_min_lr: 0.000005
+
+  # Layer freeze settings (none is no freeze)
+  layer_freeze_type: 'on_epoch' # 'none', 'on_epoch'
+  freeze_until_epoch: 50
 
   # Early stopping parameters
   early_paticence: 50
@@ -33,14 +38,13 @@ parameters:
   # Loss settings
   cross_entr_weight: 1.0
   reg_weight: 0.0001
-  dice_weight: 2.0
-
+  dice_weight: 1.0
 
   # Experiment parameters
-  resume_training_from: 
+  resume_training_from:
   output_dir: '/hdd/datasets/TGS/trained_models/network_types'
   export_from:
-  train_epochs: 100
+  train_epochs: 200
   start_eval_at_epoch: 5
   eval_per_n_epoch: 1
   eval_steps: 20
@@ -56,7 +60,7 @@ parameters:
   rms_momentum: 0.0
 
   # Network selector
-  network_type: 'unet'
+  network_type: 'vgg_16_unet'
   warm_start: true
 
   ### Network architectures ###
@@ -67,26 +71,20 @@ parameters:
   batchnorm: true
   nbr_of_classes: 1
 
-  #### resmet ####
+  #### resnet_152 ####
   resnet_chkp: '/hdd/pretrained_networks/resnet_152/resnet_v2_152.ckpt'
   resnet_freeze: true
-  resnet_upsampling_type: 'artifact_upsampling'
-  resnet_add_coloring_layer: false
-  resnet_stack_input_channels: false
+  resnet_upsampling_type: 'subpixel'
 
   #### nasnet ####
   nasnet_chkp: '/hdd/pretrained_networks/nasnet/model.ckpt'
   nasnet_freeze: true
-  nasnet_add_coloring_layer: false
-  nasnet_stack_input_channels: true
 
   #### vgg_16_unet ####
   vgg16_chkp: '/hdd/pretrained_networks/vgg16/vgg_16.ckpt'
   vgg_16_freeze: false
-  vgg_16_add_coloring_layer: false
-  vgg_16_stack_input_channels: true
   vgg_16_stack_depth: 5
-  vgg_16_unet_upsampling_type: 'subpixel'
+  vgg_16_unet_upsampling_type: 'spatial_unpool' # subpixel, bilinear, artifact_upsampling, spatial_unpool
 
 
   #### unet ####

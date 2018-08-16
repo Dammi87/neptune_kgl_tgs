@@ -178,7 +178,7 @@ def unpool_2d(pool,
 def artifact_upsampling(x, n_first, n_out):
     """Reduce artifacts by using 3 and then 4 transpose."""
     x = tf.layers.Conv2D(n_first, (3, 3), strides=(1, 1), padding='SAME', activation=tf.nn.relu)(x)
-    return tf.layers.Conv2DTranspose(n_out, kernel_size=(4, 4), padding='SAME', strides=(2, 2), activation=tf.nn.relu)(x)
+    return tf.layers.Conv2DTranspose(n_out, kernel_size=(3, 3), padding='SAME', strides=(2, 2), activation=tf.nn.relu)(x)
 
 
 def upsample(x, idx=None, upsample_type='subpixel', n_filters=None, activation=None, kernel_size=3):

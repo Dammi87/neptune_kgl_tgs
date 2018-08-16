@@ -1,6 +1,7 @@
 """Method to perform inference, also to convert checkpoints to saved models."""
 import tensorflow as tf
 import numpy as np
+from PIL import Image
 from src.input_pipe.dataset import resize_img
 from src.lib.neptune import get_params
 
@@ -41,10 +42,10 @@ def get_ensemble_predictors(saved_models):
         for fcn in predictors:
             result += fcn({'input': [img]})['probabilities']
 
-        result = np.divide(result, len(predictors))
+        result = np.divide(result, len(predictors)).squeeze()
 
         # Downsample to correct size
-        return resize_img(result, resize=params.original_size)
+        return np.array(resize_img(Image.fromarray(result), resize=params.original_size))
 
     return ensemble
 
@@ -67,7 +68,7 @@ def RLenc(img, order='F', format=True):
 
     returns run length as an array or string (if format is True)
     """
-    bytes = img.reshape(img.shape[1] * img.shape[2], order=order)
+    bytes = img.reshape(img.shape[0] * img.shape[1], order=order)
     runs = []  # list of run lengths
     r = 0  # the current run length
     pos = 1  # count starts from 1 per WK

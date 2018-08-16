@@ -1,6 +1,14 @@
 /usr/local/lib/python3.5/dist-packages/h5py/__init__.py:36: FutureWarning: Conversion of the second argument of issubdtype from `float` to `np.floating` is deprecated. In future, it will be treated as `np.float64 == np.dtype(float).type`.
   from ._conv import register_converters as _register_converters
-2018-08-13 12:19:54.573491: I tensorflow/core/platform/cpu_feature_guard.cc:140] Your CPU supports instructions that this TensorFlow binary was not compiled to use: AVX2 FMA
+INFO:tensorflow:Using config: {'_save_summary_steps': 180, '_save_checkpoints_secs': None, '_tf_random_seed': None, '_num_worker_replicas': 1, '_cluster_spec': <tensorflow.python.training.server_lib.ClusterSpec object at 0x7f3007480278>, '_log_step_count_steps': 100, '_master': '', '_evaluation_master': '', '_global_id_in_cluster': 0, '_session_config': allow_soft_placement: true
+, '_task_id': 0, '_task_type': 'worker', '_num_ps_replicas': 0, '_keep_checkpoint_every_n_hours': 10000, '_keep_checkpoint_max': 10, '_train_distribute': None, '_is_chief': True, '_service': None, '_save_checkpoints_steps': 1000, '_model_dir': '/hdd/datasets/TGS/trained_models/network_types/vgg_16_unet/c032eba5-d747-4172-86ba-2afcf5a3b63e'}
+INFO:tensorflow:Calling model_fn.
+INFO:tensorflow:AdjustLearningRate._reduce_on_plateau: No change, count at 0
+INFO:tensorflow:AdjustLayerFreeze._varlist_on_epoch: training ['Decoder']
+INFO:tensorflow:Done calling model_fn.
+INFO:tensorflow:Warm-starting with WarmStartSettings: WarmStartSettings(ckpt_to_initialize_from='/hdd/pretrained_networks/vgg16/vgg_16.ckpt', vars_to_warm_start='vgg_16', var_name_to_vocab_info={}, var_name_to_prev_var_name={'vgg_16/conv3/conv3_1/kernel': 'vgg_16/conv3/conv3_1/weights', 'vgg_16/conv1/conv1_1/kernel': 'vgg_16/conv1/conv1_1/weights', 'vgg_16/conv3/conv3_3/kernel': 'vgg_16/conv3/conv3_3/weights', 'vgg_16/conv2/conv2_1/kernel': 'vgg_16/conv2/conv2_1/weights', 'vgg_16/conv4/conv4_1/bias': 'vgg_16/conv4/conv4_1/biases', 'vgg_16/conv5/conv5_3/bias': 'vgg_16/conv5/conv5_3/biases', 'vgg_16/conv5/conv5_3/kernel': 'vgg_16/conv5/conv5_3/weights', 'vgg_16/conv2/conv2_2/bias': 'vgg_16/conv2/conv2_2/biases', 'vgg_16/conv5/conv5_2/bias': 'vgg_16/conv5/conv5_2/biases', 'vgg_16/conv3/conv3_1/bias': 'vgg_16/conv3/conv3_1/biases', 'vgg_16/conv4/conv4_2/kernel': 'vgg_16/conv4/conv4_2/weights', 'vgg_16/conv4/conv4_2/bias': 'vgg_16/conv4/conv4_2/biases', 'vgg_16/conv4/conv4_3/kernel': 'vgg_16/conv4/conv4_3/weights', 'vgg_16/conv1/conv1_2/kernel': 'vgg_16/conv1/conv1_2/weights', 'vgg_16/conv5/conv5_1/bias': 'vgg_16/conv5/conv5_1/biases', 'vgg_16/conv1/conv1_1/bias': 'vgg_16/conv1/conv1_1/biases', 'vgg_16/conv3/conv3_3/bias': 'vgg_16/conv3/conv3_3/biases', 'vgg_16/conv5/conv5_2/kernel': 'vgg_16/conv5/conv5_2/weights', 'vgg_16/conv3/conv3_2/kernel': 'vgg_16/conv3/conv3_2/weights', 'vgg_16/conv5/conv5_1/kernel': 'vgg_16/conv5/conv5_1/weights', 'vgg_16/conv2/conv2_1/bias': 'vgg_16/conv2/conv2_1/biases', 'vgg_16/conv4/conv4_1/kernel': 'vgg_16/conv4/conv4_1/weights', 'vgg_16/conv1/conv1_2/bias': 'vgg_16/conv1/conv1_2/biases', 'vgg_16/conv3/conv3_2/bias': 'vgg_16/conv3/conv3_2/biases', 'vgg_16/conv2/conv2_2/kernel': 'vgg_16/conv2/conv2_2/weights', 'vgg_16/conv4/conv4_3/bias': 'vgg_16/conv4/conv4_3/biases'})
+INFO:tensorflow:Warm-starting from: ('/hdd/pretrained_networks/vgg16/vgg_16.ckpt',)
+INFO:tensorflow:Warm-starting variable: vgg_16/conv3/conv3_1/kernel; prev_var_name: vgg_16/conv3/conv3_1/weights
 Traceback (most recent call last):
   File "/usr/local/lib/python3.5/dist-packages/deepsense/neptune/job_wrapper.py", line 107, in <module>
     execute()
@@ -8,16 +16,28 @@ Traceback (most recent call last):
     execfile(job_filepath, job_globals)
   File "/usr/local/lib/python3.5/dist-packages/past/builtins/misc.py", line 82, in execfile
     exec_(code, myglobals, mylocals)
-  File "src/analysis/largest_error.py", line 17, in <module>
-    fcn = get_ensemble_predictors(['/hdd/datasets/TGS/trained_models/resnet_152/vgg_16_unet/64156b6c-e098-4019-b96e-1f7755c0964e/best_models/10800/1534160180'])
-  File "/home/adamf/repos/neptune_kaggle_tgs/src/lib/inference.py", line 32, in get_ensemble_predictors
-    signature_def_key="prediction"
-  File "/usr/local/lib/python3.5/dist-packages/tensorflow/contrib/predictor/predictor_factories.py", line 131, in from_saved_model
-    graph=graph)
-  File "/usr/local/lib/python3.5/dist-packages/tensorflow/contrib/predictor/saved_model_predictor.py", line 156, in __init__
-    loader.load(self._session, tags.split(','), export_dir)
-  File "/usr/local/lib/python3.5/dist-packages/tensorflow/python/saved_model/loader_impl.py", line 203, in load
-    saved_model = _parse_saved_model(export_dir)
-  File "/usr/local/lib/python3.5/dist-packages/tensorflow/python/saved_model/loader_impl.py", line 79, in _parse_saved_model
-    constants.SAVED_MODEL_FILENAME_PB))
-OSError: SavedModel file does not exist at: /hdd/datasets/TGS/trained_models/resnet_152/vgg_16_unet/64156b6c-e098-4019-b96e-1f7755c0964e/best_models/10800/1534160180/{saved_model.pbtxt|saved_model.pb}
+  File "src/trainer/task.py", line 85, in <module>
+    estimator.run_manual(run_config, params)
+  File "/home/adamf/repos/neptune_kgl_tgs/src/trainer/estimator.py", line 165, in run_manual
+    estimator.train(input_fn=input_fn['train'])  # In the dataset loading, the input_fn only outputs one epoch
+  File "/usr/local/lib/python3.5/dist-packages/tensorflow/python/estimator/estimator.py", line 363, in train
+    loss = self._train_model(input_fn, hooks, saving_listeners)
+  File "/usr/local/lib/python3.5/dist-packages/tensorflow/python/estimator/estimator.py", line 843, in _train_model
+    return self._train_model_default(input_fn, hooks, saving_listeners)
+  File "/usr/local/lib/python3.5/dist-packages/tensorflow/python/estimator/estimator.py", line 859, in _train_model_default
+    saving_listeners)
+  File "/usr/local/lib/python3.5/dist-packages/tensorflow/python/estimator/estimator.py", line 986, in _train_with_estimator_spec
+    warm_starting_util.warm_start(*self._warm_start_settings)
+  File "/usr/local/lib/python3.5/dist-packages/tensorflow/python/training/warm_starting_util.py", line 342, in warm_start
+    _warm_start_var(variable, ckpt_to_initialize_from, prev_var_name)
+  File "/usr/local/lib/python3.5/dist-packages/tensorflow/python/training/warm_starting_util.py", line 143, in _warm_start_var
+    checkpoint_utils.init_from_checkpoint(prev_ckpt, {prev_tensor_name: var})
+  File "/usr/local/lib/python3.5/dist-packages/tensorflow/python/training/checkpoint_utils.py", line 183, in init_from_checkpoint
+    reader = load_checkpoint(ckpt_dir_or_file)
+  File "/usr/local/lib/python3.5/dist-packages/tensorflow/python/training/checkpoint_utils.py", line 63, in load_checkpoint
+    return pywrap_tensorflow.NewCheckpointReader(filename)
+  File "/usr/local/lib/python3.5/dist-packages/tensorflow/python/pywrap_tensorflow_internal.py", line 290, in NewCheckpointReader
+    return CheckpointReader(compat.as_bytes(filepattern), status)
+  File "/usr/local/lib/python3.5/dist-packages/tensorflow/python/framework/errors_impl.py", line 519, in __exit__
+    c_api.TF_GetCode(self.status.status))
+tensorflow.python.framework.errors_impl.InvalidArgumentError: Unsuccessful TensorSliceReader constructor: Failed to get matching files on /hdd/pretrained_networks/vgg16/vgg_16.ckpt: Not found: /hdd/pretrained_networks/vgg16; No such file or directory
